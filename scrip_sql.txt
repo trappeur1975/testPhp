@@ -1,0 +1,154 @@
+creer une base de donnee nommé "health"
+______________________________
+
+CREATE TABLE `health`.`famille_aliment` ( `id` INT NOT NULL AUTO_INCREMENT , `nom` INT NOT NULL , PRIMARY KEY (`id`)) ENGINE = INNODB;
+
+CREATE TABLE `health`.`aliment` ( `id` INT NOT NULL AUTO_INCREMENT ,  `nom` VARCHAR(256) NOT NULL ,  `calorie` INT NOT NULL ,  `id_famille_aliment` INT NOT NULL ,    PRIMARY KEY  (`id`)) ENGINE = INNODB;
+
+ALTER TABLE `aliment` ADD CONSTRAINT `cleEtrangerIdFamilleAliment` FOREIGN KEY (`id_famille_aliment`) REFERENCES `famille_aliment`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE `aliment` DROP FOREIGN KEY `cleEtrangerIdFamilleAliment`; ALTER TABLE `aliment` ADD CONSTRAINT `cleEtrangerIdFamilleAliment` FOREIGN KEY (`id_famille_aliment`) REFERENCES `famille_aliment`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT; 
+
+INSERT INTO `aliment` (`id`, `nom`, `calorie`, `id_famille_aliment`) VALUES (NULL, 'artichaut', '40', '1'), (NULL, 'asperge', '26', '1'), (NULL, 'carottes', '38', '1'), (NULL, 'espadon', '116', '2'), (NULL, 'thon', '228', '2'), (NULL, 'daurade', '77', '2'), (NULL, 'bar', '90', '2'), (NULL, 'tomate', '20', '1');
+
+INSERT INTO `aliment` (`id`, `nom`, `calorie`, `id_famille_aliment`) VALUES (NULL, 'poulet', '150', '3'), (NULL, 'canard', '126', '3'), (NULL, 'faisan', '106', '3'), (NULL, 'porc', '102', '4'), (NULL, 'cerf', '116', '4'), (NULL, 'dinde', '125', '4');
+
+ALTER TABLE `aliment` CHANGE `nom` `name` VARCHAR(256) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL; 
+ALTER TABLE `famille_aliment` CHANGE `nom` `name` VARCHAR(256) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL; 
+
+______________________________
+
+CREATE TABLE `health`.`food` ( `id` INT NOT NULL AUTO_INCREMENT ,  `name` VARCHAR(250) NOT NULL ,  `calorie` INT NOT NULL ,  `id_foodOfType` INT NOT NULL ,    PRIMARY KEY  (`id`)) ENGINE = InnoDB;
+
+CREATE TABLE `health`.`foodoftype` ( `id` INT NOT NULL AUTO_INCREMENT ,  `name` VARCHAR(256) NOT NULL ,    PRIMARY KEY  (`id`)) ENGINE = InnoDB;
+
+INSERT INTO `foodoftype` (`id`, `name`) VALUES (NULL, 'legume'), (NULL, 'poisson'), (NULL, 'volaille'), (NULL, 'viande');
+
+INSERT INTO `food` (`id`, `name`, `calorie`, `id_foodOfType`) VALUES (NULL, 'artichaut', '40', '1'), (NULL, 'asperge', '26', '1'), (NULL, 'carottes', '38', '1'), (NULL, 'espadon', '116', '2'), (NULL, 'thon', '228', '2'), (NULL, 'daurade', '77', '2'), (NULL, 'bar', '90', '2'), (NULL, 'tomate', '20', '1');
+
+INSERT INTO `food` (`id`, `name`, `calorie`, `id_foodOfType`) VALUES (NULL, 'poulet', '150', '3'), (NULL, 'canard', '126', '3'), (NULL, 'faisan', '106', '3'), (NULL, 'porc', '102', '4'), (NULL, 'cerf', '116', '4'), (NULL, 'dinde', '125', '4');
+
+
+------------------------code php---------------------------------------
+  	<?php
+        try{
+          $bdd = new PDO('mysql:host=localhost;dbname=health;charset=utf8','root','');
+        }
+        catch(Exception $e){
+          die('Erreur : ' . $e->getMessage());
+        }
+        $response = $bdd->query('SELECT nom FROM famille_aliment');
+        while($data=$response->fetch())
+        {
+        ?>
+          <p> 
+            <strong>nom : </strong><?php echo $data['nom']; ?>
+          </p>
+        <?php
+        }
+        $response->closeCursor();
+  	?>
+
+    <h2>les aliments de la categorie legume :</h2>
+      <?php
+        $response = $bdd->query('SELECT * FROM aliment WHERE id_famille_aliment=1');
+        while($data=$response->fetch())
+        {
+        ?>
+          <p> 
+            <strong>nom : </strong><?php echo $data['nom'];?>
+            calorie= <?php echo $data['calorie']?>
+            de la famille <?php echo $data['id_famille_aliment'] ?>
+          </p>
+        <?php
+        }
+        $response->closeCursor();
+      ?>
+
+     <h2>les aliments par categorie (avec jointure) :</h2>
+        <?php
+          $response = $bdd->query('select famille_aliment.nom AS nomfamille, aliment.nom AS nomAliment, aliment.calorie AS calorie
+                                  from famille_aliment
+                                  inner join aliment
+                                  where famille_aliment.id = aliment .id_famille_aliment');
+          while($data=$response->fetch())
+          {
+          ?>
+            <p> 
+              <strong>nom : </strong><?php echo $data['nomAliment'];?>
+              calorie= <?php echo $data['calorie']?>
+              de la famille <?php echo $data['nomfamille'] ?>
+            </p>
+          <?php
+          }
+          $response->closeCursor();
+        ?>
+
+        <h2>les aliments pour la categorie poisson (avec jointure) :</h2>
+        <?php
+          $response = $bdd->query("select famille_aliment.nom AS nomfamille, aliment.nom AS nomAliment, aliment.calorie AS calorie
+                                  from famille_aliment
+                                  inner join aliment
+                                  where famille_aliment.id = aliment .id_famille_aliment And famille_aliment.nom = 'poisson'");
+          while($data=$response->fetch())
+          {
+          ?>
+            <p> 
+              <strong>nom : </strong><?php echo $data['nomAliment'];?>
+              calorie= <?php echo $data['calorie']?>
+              de la famille <?php echo $data['nomfamille'] ?>
+            </p>
+          <?php
+          }
+          $response->closeCursor();
+        ?>
+
+        <h2>les aliments pour la categorie poisson (avec requete preparer jointure) :</h2>
+        <?php
+          $response = $bdd->prepare("select famille_aliment.nom AS nomfamille, aliment.nom AS nomAliment, aliment.calorie AS calorie
+                                  from famille_aliment
+                                  inner join aliment
+                                  where famille_aliment.id = aliment .id_famille_aliment And famille_aliment.nom = :famille_aliment");
+          $response->execute(array('famille_aliment'=>'poisson'));
+          while($data=$response->fetch())
+          {
+          ?>
+            <p> 
+              <strong>nom : </strong><?php echo $data['nomAliment'];?>
+              calorie= <?php echo $data['calorie']?>
+              de la famille <?php echo $data['nomfamille'] ?>
+            </p>
+          <?php
+          }
+          $response->closeCursor();
+        ?>
+
+        //-----------------------------recupeartion de variable d'un formulaire---------------
+       	<?php
+	        $famille_aliment = $_POST['famille_aliment']; //recuperation de la data du formulaire de la page index.php
+
+	        try{
+	          $bdd = new PDO('mysql:host=localhost;dbname=health;charset=utf8','root','');
+	        }
+	        catch(Exception $e){
+	          die('Erreur : ' . $e->getMessage());
+	        }
+	        $response = $bdd->prepare(
+	                                  "select famille_aliment.nom AS nomfamille, aliment.nom AS nomAliment, aliment.calorie AS calorie
+	                                  from famille_aliment
+	                                  inner join aliment
+	                                  where famille_aliment.id = aliment .id_famille_aliment And famille_aliment.nom = :famille_aliment");
+	        $response->execute(array('famille_aliment'=> $famille_aliment));
+	        while($data=$response->fetch())
+	        {
+	        ?>
+	          <p> 
+	            <strong>nom : </strong><?php echo $data['nomAliment'];?>
+	            calorie= <?php echo $data['calorie']?>
+	            de la famille <?php echo $data['nomfamille'] ?>
+	          </p>
+	        <?php
+	        }
+	        $response->closeCursor();
+      	?>
+        ------------------------fin code php---------------------------------------
